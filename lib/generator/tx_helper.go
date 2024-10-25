@@ -1,9 +1,9 @@
 package generator
 
 import (
-	"math/big"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"math/big"
 	"strings"
 
 	abipkg "github.com/ethereum/go-ethereum/accounts/abi"
@@ -11,38 +11,36 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-const GasLimit = uint64(21000)
-
 func GenerateSimpleTransferTx(privateKey *ecdsa.PrivateKey, recipient string, nonce uint64, chainID, gasPrice, value *big.Int, eip1559 bool) (*types.Transaction, error) {
-        toAddress := common.HexToAddress(recipient)
+	toAddress := common.HexToAddress(recipient)
 
-        var signedTx *types.Transaction
-        var err error
-        if eip1559 {
-                tx := types.NewTx(&types.DynamicFeeTx{
-                        ChainID:   chainID,
-                        Nonce:     nonce,
-                        To:        &toAddress,
-                        Value:     value,
-                        GasFeeCap: gasPrice,
-                        GasTipCap: gasPrice,
-                        Gas:       GasLimit,
-                        Data:      nil,
-                })
-                signedTx, err = types.SignTx(tx, types.NewLondonSigner(chainID), privateKey)
-        } else {
-                tx := types.NewTransaction(nonce, toAddress, value, GasLimit, gasPrice, nil)
-                signedTx, err = types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
-        }
+	var signedTx *types.Transaction
+	var err error
+	if eip1559 {
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   chainID,
+			Nonce:     nonce,
+			To:        &toAddress,
+			Value:     value,
+			GasFeeCap: gasPrice,
+			GasTipCap: gasPrice,
+			Gas:       simpleTransferGasLimit,
+			Data:      nil,
+		})
+		signedTx, err = types.SignTx(tx, types.NewLondonSigner(chainID), privateKey)
+	} else {
+		tx := types.NewTransaction(nonce, toAddress, value, simpleTransferGasLimit, gasPrice, nil)
+		signedTx, err = types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	}
 
-        if err != nil {
-                return &types.Transaction{}, err
-        }
+	if err != nil {
+		return &types.Transaction{}, err
+	}
 
-        return signedTx, nil
+	return signedTx, nil
 }
 
-func GenerateContractCreationTx(privateKey *ecdsa.PrivateKey, nonce uint64, chainID, gasPrice *big.Int, contractBin, contractABI string, args ...interface{}) (*types.Transaction, error) {
+func GenerateContractCreationTx(privateKey *ecdsa.PrivateKey, nonce uint64, chainID, gasPrice *big.Int, gasLimit uint64, contractBin, contractABI string, args ...interface{}) (*types.Transaction, error) {
 	bytecode, err := hex.DecodeString(contractBin)
 	if err != nil {
 		return &types.Transaction{}, err
@@ -66,7 +64,7 @@ func GenerateContractCreationTx(privateKey *ecdsa.PrivateKey, nonce uint64, chai
 	tx := types.NewContractCreation(
 		nonce,
 		big.NewInt(0),
-		GasLimit,
+		gasLimit,
 		gasPrice,
 		bytecode,
 	)
@@ -79,7 +77,7 @@ func GenerateContractCreationTx(privateKey *ecdsa.PrivateKey, nonce uint64, chai
 	return signedTx, nil
 }
 
-func GenerateContractCallingTx(privateKey *ecdsa.PrivateKey, contractAddress string, nonce uint64, chainID, gasPrice *big.Int, contractABI, method string, args ...interface{}) (*types.Transaction, error) {
+func GenerateContractCallingTx(privateKey *ecdsa.PrivateKey, contractAddress string, nonce uint64, chainID, gasPrice *big.Int, gasLimit uint64, contractABI, method string, args ...interface{}) (*types.Transaction, error) {
 	abi, err := abipkg.JSON(strings.NewReader(contractABI))
 	if err != nil {
 		return &types.Transaction{}, err
@@ -95,7 +93,7 @@ func GenerateContractCallingTx(privateKey *ecdsa.PrivateKey, contractAddress str
 		nonce,
 		toAddress,
 		big.NewInt(0),
-		GasLimit,
+		gasLimit,
 		gasPrice,
 		data,
 	)
