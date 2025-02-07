@@ -27,7 +27,7 @@ jobs:
         cd 0g-chain
         sudo LINK_STATICALLY=true make build-release
         sed -i '/$BINARY config broadcast-mode sync/a sed -i '\''s/timeout_commit = "5s"/timeout_commit = "1s"/'\'' ~/.0gchain/config/config.toml' localtestnet.sh
-        tail localtestnet.sh
+        sed -i 's/max_gas = "25000000"/max_gas = "50000000"/' localtestnet.sh
         ./localtestnet.sh &> chain.log &
         while ! nc -z localhost 8546; do sleep 1; done
         cd ../../evmchainbench
