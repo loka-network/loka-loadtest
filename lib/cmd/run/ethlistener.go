@@ -89,13 +89,21 @@ func (el *EthereumListener) handleNewHead(response map[string]interface{}) {
 	result := params["result"].(map[string]interface{})
 	blockNo := result["number"].(string)
 
+	// Convert blockNo from hex string to decimal
+	blockNoDec, err := strconv.ParseInt(blockNo[2:], 16, 64)
+	if err != nil {
+		log.Default().Println("Invalid block number:", blockNo)
+	} else {
+		log.Default().Println("Request block:", blockNoDec)
+	}
+
 	request := map[string]interface{}{
 		"jsonrpc": "2.0",
 		"id":      1,
 		"method":  "eth_getBlockByNumber",
 		"params":  []interface{}{blockNo, false},
 	}
-	err := el.conn.WriteJSON(request)
+	err = el.conn.WriteJSON(request)
 	if err != nil {
 		log.Println("Failed to send block request:", err)
 	}
@@ -124,6 +132,7 @@ func (el *EthereumListener) handleBlockResponse(response map[string]interface{})
 			ts, _ := strconv.ParseInt(result["timestamp"].(string)[2:], 16, 64)
 			gasUsed, _ := strconv.ParseInt(result["gasUsed"].(string)[2:], 16, 64)
 			gasLimit, _ := strconv.ParseInt(result["gasLimit"].(string)[2:], 16, 64)
+			log.Default().Println("TxCount:", len(txns), "GasUsed:", gasUsed, "GasLimit:", gasLimit)
 			el.blockStat = append(el.blockStat, BlockInfo{
 				Time:     ts,
 				TxCount:  int64(len(txns)),
@@ -153,6 +162,7 @@ func (el *EthereumListener) handleBlockResponse(response map[string]interface{})
 					totalGasUsed += block.GasUsed
 				}
 				tps := totalTxCount / timeSpan
+				log.Default().Println("TimeSpan:", timeSpan, "TotalTxCount:", totalTxCount)
 				gasUsedPercent := float64(totalGasUsed) / float64(totalGasLimit)
 				if tps > el.bestTPS {
 					el.bestTPS = tps

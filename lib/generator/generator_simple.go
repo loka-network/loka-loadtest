@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"log"
 	"math/big"
 	"sync"
 
@@ -21,7 +22,8 @@ func (g *Generator) GenerateSimple() (map[int]types.Transactions, error) {
 
 	var mutex sync.Mutex
 	ch := make(chan error)
-
+	
+	log.Default().Println("Generating simple transfers...")
 	for index, sender := range g.Senders {
 		go func(index int, sender *account.Account) {
 			txs := types.Transactions{}

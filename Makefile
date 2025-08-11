@@ -1,4 +1,4 @@
-BINARY_NAME=evmchainbench
+BINARY_NAME=lokabenchcli
 
 build:
 	go build -o bin/${BINARY_NAME} main.go

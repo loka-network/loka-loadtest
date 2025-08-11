@@ -49,6 +49,7 @@ func Run(httpRpc, wsRpc, faucetPrivateKey string, senderCount, txCount int, txTy
 		log.Fatalf("Failed to create transmitter: %v", err)
 	}
 
+	log.Default().Println("Broadcasting transactions...")
 	err = transmitter.Broadcast(txsMap)
 	if err != nil {
 		log.Fatalf("Failed to broadcast transactions: %v", err)

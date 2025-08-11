@@ -1,35 +1,70 @@
-# Performance Analysis of 0G, Evmos, Kava, Bera, and Sei
+# Loka Blockchain Load Testing Tool
 
-| Chain   | Simple | ERC20 | Uniswap |
-|---------|--------|-------|---------|
-| 0G      | 769    | 724   | 325     |
-| Bera    | 910    | 638   | 224     |
-| Evmos   | 790    | 859   | 689     |
-| Kava    | 637    | 84    | 36      |
-| Sei     | 784    | 784   | 392     |
+This project is primarily designed as a load testing tool for the **Loka blockchain**, which is a fully EVM-compatible chain utilizing **NeoBFT** consensus and **Block-STM** parallel execution. The tool enables performance benchmarking and stress testing of Loka under various transaction workloads.
 
-## Key Observations and Insights
+## Features
 
-### 1. Cosmos+Ethermint vs. Cosmos+Beacon API+Geth/Reth
-- **0G, Evmos, and Kava** use Cosmos+Ethermint, where each Ethereum transaction is wrapped into a Cosmos transaction for consensus processing. This introduces additional overhead compared to directly processing Ethereum transactions in an EVM.
-- **Bera** adopts Cosmos+Beacon API+Geth/Reth, wrapping an entire Ethereum block payload into a single Cosmos transaction. This significantly reduces the transaction load on the consensus layer, resulting in better performance across all test categories.
+- Supports native token transfers, simple smart contract calls, and ERC20 token transfers.
+- Compatible with Loka's NeoBFT + Block-STM architecture.
+- Multi-process and multi-account workload generation.
+- Includes scripts for mempool monitoring and parallel client execution.
 
-### 2. Sei's Unique Modifications
-- **Sei** has extensively modified Cosmos, Tendermint, and Go-Ethereum. These deep changes make it fundamentally different from standard Cosmos chains like 0G, Evmos, and Kava. As such, Sei's performance cannot be directly compared to other chains in this analysis.
+## Build Instructions
 
-### 3. Block Production in Cosmos+Ethermint
-- Ethermint-based chains produce blocks based on Ethereum transactions' **gas limits** rather than **gas used**, as the Cosmos consensus layer cannot calculate gas used during block production. To prevent misuse of inflated gas limits, a **minimum gas usage ratio** (typically 50%, adjustable via consensus) is enforced.
-- **Evmos’ higher TPS** in ERC20 and Uniswap tests is primarily due to its larger block size configuration, not inherent performance optimizations.
+To compile the project, run:
 
-### 4. Performance Gap Between 0G and Kava
-- **0G and Kava** share similar block size configurations, but **0G achieves better TPS** due to an improved `estimateGas` method. This enhancement allows for more accurate gas limit calculations, improving transaction processing efficiency.
+```sh
+make
+```
 
-### 5. Bera's Design Advantage
-- Bera's use of block-level payload processing avoids the overhead of transaction-by-transaction consensus inherent in Ethermint chains. This architectural decision gives Bera a significant performance edge in all test scenarios.
+This will build all necessary binaries, including `lokabenchcli` and supporting tools.
 
-## Conclusion
-The performance differences highlight the impact of architectural and implementation choices:
-- **Bera** excels due to its block-level payload processing approach, which reduces consensus overhead.
-- **0G** demonstrates the advantages of refining critical components like `estimateGas` to improve transaction throughput.
-- **Evmos** achieves high ERC20 and Uniswap TPS through increased block size, while **Kava** lags due to older CometBFT and less efficient gas estimation.
-- **Sei’s extensive customizations** set it apart from other chains, making direct comparisons to standard Cosmos-based architectures inappropriate.
+## Usage
+
+### Basic Benchmark
+
+Run a benchmark with default parameters:
+
+```sh
+./bin/lokabenchcli run --http-rpc <RPC_URL> --ws-rpc <WS_URL> --tx-count <COUNT> --sender-count <NUM_SENDERS>
+```
+
+- `--http-rpc`: HTTP RPC endpoint of your Loka node.
+- `--ws-rpc`: WebSocket RPC endpoint.
+- `--tx-count`: Number of transactions to send.
+- `--sender-count`: Number of concurrent senders.
+
+### Multi-Account Parallel Benchmark
+
+Use the provided script to generate multiple accounts, fund them, and start parallel clients:
+
+```sh
+./test-multi-acc-from-root.sh <root_private_key> <num_accounts> [sender_count] <amount_per_account_eth> [rpc_url] [ws_url] [type]
+```
+
+- `<root_private_key>`: Private key of the funding account.
+- `<num_accounts>`: Number of test accounts to create.
+- `[sender_count]`: Number of concurrent senders per client (default: 4).
+- `<amount_per_account_eth>`: Amount of ETH to fund each account.
+- `[rpc_url]`: HTTP RPC endpoint (default: http://127.0.0.1:8545).
+- `[ws_url]`: WebSocket RPC endpoint (default: ws://127.0.0.1:8546).
+- `[type]`: Workload type (`simple`, `erc20`, or `uniswap`).
+
+See [`test-multi-acc-from-root.sh`](test-multi-acc-from-root.sh) for details.
+
+### Mempool Monitoring
+
+Monitor the mempool transaction count in real time:
+
+```sh
+./mempool_monitor.sh http://localhost:26657
+```
+
+This script queries the Loka node's RPC endpoint (default: `http://localhost:26657`) every second and prints the current mempool transaction count.
+
+See [`mempool_monitor.sh`](mempool_monitor.sh) for details.
+
+## Scripts
+
+- [test-multi-acc-from-root.sh](test-multi-acc-from-root.sh): Generates multiple accounts, funds them, and launches parallel benchmark clients.
+- [mempool_monitor.sh](mempool_monitor.sh): Monitors the mempool transaction count via RPC.

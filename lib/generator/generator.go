@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -65,6 +66,7 @@ func NewGenerator(rpcUrl, faucetPrivateKey string, senderCount, txCount int, sho
 		return &Generator{}, err
 	}
 
+	log.Default().Println("New accounts, senders:", senderCount, ",recipients:", txCount)
 	senders := make([]*account.Account, senderCount)
 	for i := 0; i < senderCount; i++ {
 		s, err := account.NewAccount(client)
@@ -177,6 +179,7 @@ func (g *Generator) prepareERC20(contractAddressStr string) {
 }
 
 func (g *Generator) prepareSenders() {
+	log.Default().Println("Preparing senders...")
 	client, err := ethclient.Dial(g.RpcUrl)
 	if err != nil {
 		panic(err)
@@ -205,7 +208,7 @@ func (g *Generator) prepareSenders() {
 
 		txs = append(txs, signedTx)
 	}
-
+	log.Default().Println("Waiting for receipts...")
 	err = util.WaitForReceiptsOfTxs(client, txs, 20*time.Second)
 	if err != nil {
 		panic(err)
