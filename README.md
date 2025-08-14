@@ -9,11 +9,23 @@ This project is primarily designed as a load testing tool for the **Loka blockch
 - Multi-process and multi-account workload generation.
 - Includes scripts for mempool monitoring and parallel client execution.
 
+## Loka Chain Benchmark
+
+[Benchmark Document](benchmark.md) provides an overview of the benchmark tests conducted on the Loka blockchain, including test setups, results, and configurations used.
+- Provides a summary table of test results for different transaction types.
+- Includes detailed configuration settings for the testing environment.
+- Describes the steps for conducting high throughput tests and monitoring TPS (Transactions Per Second).
+- Highlights the expected results and performance metrics for the Loka chain.
+
 ## Build Instructions
 
-To compile the project, run:
+To compile the project, ensure you have the necessary dependencies installed (e.g., Go, Make).
+Then run:
 
 ```sh
+git clone https://github.com/loka-network/loka-loadtest.git
+cd loka-loadtest
+
 make
 ```
 
