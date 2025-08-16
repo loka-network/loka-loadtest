@@ -46,13 +46,13 @@ for entry in "${ACCS[@]}"; do
   cast send --private-key $ROOT_PRIVKEY --rpc-url $RPC_URL $ADDR --value "${AMOUNT}ether"
 done
 
-# Start evmchainbench in parallel
+# Start lokabenchcli in parallel
 for entry in "${ACCS[@]}"; do
   PRIV=$(echo $entry | cut -d: -f1)
   if [[ "$TYPE" == "erc20" || "$TYPE" == "uniswap" ]]; then
-    ./bin/evmchainbench run --faucet-private-key $PRIV --tx-count 20000 --mempool $((100000/NUM_ACCS)) -p "$TYPE" --http-rpc $RPC_URL --ws-rpc $WS_URL --sender-count $SENDER_COUNT &
+    ./bin/lokabenchcli run --faucet-private-key $PRIV --tx-count 500 --mempool $((100000/NUM_ACCS)) -p "$TYPE" --http-rpc $RPC_URL --ws-rpc $WS_URL --sender-count $SENDER_COUNT &
   else
-    ./bin/evmchainbench run --faucet-private-key $PRIV --tx-count 20000 --mempool $((100000/NUM_ACCS)) --http-rpc $RPC_URL --ws-rpc $WS_URL --sender-count $SENDER_COUNT &
+    ./bin/lokabenchcli run --faucet-private-key $PRIV --tx-count 500 --mempool $((100000/NUM_ACCS)) --http-rpc $RPC_URL --ws-rpc $WS_URL --sender-count $SENDER_COUNT &
   fi
 done
 

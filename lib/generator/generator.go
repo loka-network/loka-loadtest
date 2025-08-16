@@ -55,7 +55,8 @@ func NewGenerator(rpcUrl, faucetPrivateKey string, senderCount, txCount int, sho
 	if err != nil {
 		return &Generator{}, err
 	}
-
+	// double gas
+	gasPrice = gasPrice.Mul(gasPrice, big.NewInt(2))
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
 		return &Generator{}, err
