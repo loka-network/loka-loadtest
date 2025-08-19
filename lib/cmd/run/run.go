@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func Run(httpRpc, wsRpc, faucetPrivateKey string, senderCount, txCount int, txType string, mempool int) {
+func Run(httpRpc, wsRpc, faucetPrivateKey string, senderCount, txCount int, txType string, mempool int, clientPoolSize int) {
 	generator, err := generator.NewGenerator(httpRpc, faucetPrivateKey, senderCount, txCount, false, "")
 	if err != nil {
 		log.Fatalf("Failed to create generator: %v", err)
@@ -44,7 +44,7 @@ func Run(httpRpc, wsRpc, faucetPrivateKey string, senderCount, txCount int, txTy
 		log.Fatalf("Failed to subscribe to new heads: %v", err)
 	}
 
-	transmitter, err := NewTransmitter(httpRpc, limiter)
+	transmitter, err := NewTransmitter(httpRpc, limiter, clientPoolSize)
 	if err != nil {
 		log.Fatalf("Failed to create transmitter: %v", err)
 	}

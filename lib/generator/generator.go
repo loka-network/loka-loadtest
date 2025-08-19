@@ -56,7 +56,7 @@ func NewGenerator(rpcUrl, faucetPrivateKey string, senderCount, txCount int, sho
 		return &Generator{}, err
 	}
 	// double gas
-	gasPrice = gasPrice.Mul(gasPrice, big.NewInt(2))
+	gasPrice = gasPrice.Mul(gasPrice, big.NewInt(8))
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
 		return &Generator{}, err
@@ -209,11 +209,14 @@ func (g *Generator) prepareSenders() {
 
 		txs = append(txs, signedTx)
 	}
-	log.Default().Println("Waiting for receipts...")
-	err = util.WaitForReceiptsOfTxs(client, txs, 20*time.Second)
-	if err != nil {
-		panic(err)
-	}
+	txs_num := len(txs)
+	log.Default().Println("Total", txs_num, "txs had been send.")
+	log.Default().Println("Waiting for receipts... and sleep", txs_num/5000, "Minute")
+	time.Sleep(time.Duration(txs_num/5000) * time.Minute)
+	// err = util.WaitForReceiptsOfTxs(client, txs, 10*time.Minute)
+	// if err != nil {
+	// 	panic(err)
+	// }
 }
 
 func (g *Generator) estimateGas(msg ethereum.CallMsg) uint64 {

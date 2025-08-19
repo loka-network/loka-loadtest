@@ -52,7 +52,7 @@ func (l *Loader) LoadAndRun() error {
 	}
 
 	// TODO, add limiter
-	transmitter, err := run.NewTransmitter(l.RpcUrl, nil)
+	transmitter, err := run.NewTransmitter(l.RpcUrl, nil, 800)
 	if err != nil {
 		return err
 	}
