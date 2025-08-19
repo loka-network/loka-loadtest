@@ -28,9 +28,9 @@ func WaitForReceiptsOfTxs(client *ethclient.Client, txs types.Transactions, time
 
 			select {
 			case <-ctx.Done():
-				return errors.New("Timeout before finding all receipts of txs")
+				return errors.New("timeout before finding all receipts of txs")
 			default:
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 	}

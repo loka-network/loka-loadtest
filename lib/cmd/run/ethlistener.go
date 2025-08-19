@@ -168,10 +168,10 @@ func (el *EthereumListener) handleBlockResponse(response map[string]interface{})
 					el.bestTPS = tps
 					el.gasUsedAtBestTPS = gasUsedPercent
 				}
-				// fmt.Printf("TPS: %d GasUsed%%: %.2f%%\n", tps, gasUsedPercent*100)
+				fmt.Printf("TPS: %d GasUsed%%: %.2f%%\n", tps, gasUsedPercent*100)
 				if totalTxCount < 100 {
 					// exit if total tx count is less than 100
-					// fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
+					fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
 					el.Close()
 					return
 				}
@@ -183,7 +183,7 @@ func (el *EthereumListener) handleBlockResponse(response map[string]interface{})
 							return
 						}
 					}
-					// fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
+					fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
 					el.Close()
 				}
 			}

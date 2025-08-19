@@ -56,7 +56,7 @@ func NewGenerator(rpcUrl, faucetPrivateKey string, senderCount, txCount int, sho
 		return &Generator{}, err
 	}
 	// double gas
-	gasPrice = gasPrice.Mul(gasPrice, big.NewInt(2))
+	gasPrice = gasPrice.Mul(gasPrice, big.NewInt(32))
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
 		return &Generator{}, err
@@ -141,6 +141,7 @@ func (g *Generator) approveERC20(token common.Address, spender common.Address) {
 }
 
 func (g *Generator) prepareERC20(contractAddressStr string) {
+	log.Default().Println("Preparing ERC20...")
 	client, err := ethclient.Dial(g.RpcUrl)
 	if err != nil {
 		panic(err)
@@ -172,7 +173,7 @@ func (g *Generator) prepareERC20(contractAddressStr string) {
 
 		txs = append(txs, tx)
 	}
-
+	log.Default().Println("Waiting for ERC20 receipts...")
 	err = util.WaitForReceiptsOfTxs(client, txs, 20*time.Second)
 	if err != nil {
 		panic(err)
@@ -209,11 +210,14 @@ func (g *Generator) prepareSenders() {
 
 		txs = append(txs, signedTx)
 	}
-	log.Default().Println("Waiting for receipts...")
-	err = util.WaitForReceiptsOfTxs(client, txs, 20*time.Second)
-	if err != nil {
-		panic(err)
-	}
+	txs_num := len(txs)
+	log.Default().Println("Total", txs_num, "txs had been send.")
+	log.Default().Println("Waiting for receipts... and sleep", txs_num/5000, "Minute")
+	time.Sleep(time.Duration(txs_num/5000) * time.Minute)
+	// err = util.WaitForReceiptsOfTxs(client, txs, 10*time.Minute)
+	// if err != nil {
+	// 	panic(err)
+	// }
 }
 
 func (g *Generator) estimateGas(msg ethereum.CallMsg) uint64 {
@@ -236,6 +240,7 @@ func (g *Generator) deployContract(gasLimit uint64, contractBin, contractABI str
 		return common.Address{}, err
 	}
 	defer client.Close()
+	log.Default().Println("Constructing contract creation tx...")
 	tx, err := GenerateContractCreationTx(
 		g.FaucetAccount.PrivateKey,
 		g.FaucetAccount.GetNonce(),
@@ -254,7 +259,7 @@ func (g *Generator) deployContract(gasLimit uint64, contractBin, contractABI str
 	if err != nil {
 		panic(err)
 	}
-
+	log.Default().Println("Sending contract creation tx and waiting for receipt...")
 	ercContractAddress, err := bind.WaitDeployed(context.Background(), client, tx)
 	if err != nil {
 		fmt.Println("tx hash:", tx.Hash().Hex())
