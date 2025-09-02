@@ -25,12 +25,12 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
 
 ### Hardware Configurations
 
-| Component | Cluster 1 (AWS) | MacBook Pro        |
-| --------- | --------------- | ------------------ |
-| CPU       | 40 vCPUs (x86)  | 10 cores (M1 Pro)  |
-| Memory    | 60GB DDR4       | 16GB unified       |
-| Storage   | 500GB SSD (gp3) | 1TB SSD            |
-| Network   | 10Gbps          | 10Gbps Thunderbolt |
+| Component | Cluster 1 (AWS) | MacBook Pro M1     | MacBook Air M4     |
+| --------- | --------------- | ------------------ | ------------------ |
+| CPU       | 40 vCPUs (x86)  | 10 cores (M1 Pro)  | 10 cores (M4)      |
+| Memory    | 60GB DDR4       | 16GB unified       | 16GB unified       |
+| Storage   | 500GB SSD (gp3) | 1TB SSD            | 500GB SSD          |
+| Network   | 10Gbps          | 10Gbps Thunderbolt | 10Gbps Thunderbolt |
 
 ### Software Stack
 
@@ -47,21 +47,23 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
 
 ### Performance Summary (Loka V1.0.0)
 
-**Throughput Under Different Transaction Types**
+| Benchmark Setup              | Simple Execute TPS | Simple Total TPS | ERC20 Execute TPS | ERC20 Total TPS |
+| ---------------------------- | ------------------ | ---------------- | ----------------- | --------------- |
+| 1 Validator (MacBook Pro M1) | 9,097 TPS          | 2935 TPS         | 7,097 TPS         | 2,010 TPS       |
+| 1 Validator (MacBook Air M4) | 10,387 TPS         | 3861 TPS         | 8,403 TPS         | 2821 TPS        |
+| 1 Validator (Cluster 1)      | 15,445 TPS         | 6,229 TPS        | 15,125 TPS        | 5,077 TPS       |
 
-| Benchmark Setup           | Simple Transfer | ERC20 Transfer | Uniswap Swap |
-| ------------------------- | --------------- | -------------- | ------------ |
-| 1 Validator (MacBook Pro) | 17285 TPS       | ... TPS       | ... TPS      |
-| 1 Validator (Cluster 1)   | ... TPS         | ... TPS        | ... TPS      |
+Explanation:
 
-**Resource Utilization During Peak Load**
+- Execute TPS: It is the number of transactions the blockchain can execute per second during transaction processing, only contains the time for transaction processing.
+- Total TPS : It encompasses the time for RPC (Remote Procedure Call) operations (used for blockchain network component communication) and consensus execution (where validators agree on the blockchain state).
 
-| Metric             | Cluster 1 (Peak) | MacBook Pro (Peak) |
-| ------------------ | ---------------- | ------------------ |
-| CPU Utilization    | 85%              | 92%                |
-| Memory Usage       | 48GB             | 14GB               |
-| Disk IOPS          | 12,000           | 8,500              |
-| Network Throughput | 450MB/s          | 380MB/s            |
+Execute TPS, Calculated as follows (Mac air M4, example block 236):
+
+- Executed and committed state to next new block's RoundStepNewHeight timeout is -664.53 milliseconds.
+- Becasue the block time is 1s, and contains 17285 txs, so the number of transactions executed per second is 17285 / 1000 - (-664.53)ms = 10,387+.
+
+![loka-chain-log](./doc/resource/executeTPS.png)
 
 ## 4. Test Methodology
 
@@ -70,14 +72,15 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
 1. **Environment Setup**:
 
    ```bash
+   # Increase the maximum number of open files
+   ulimit -n 65535
+
+   # Clone the Loka chain repository
    git clone https://github.com/loka-network/loka-chain.git
    cd loka-chain
 
-   # Clone and build with RocksDB support (Linux)
-   COSMOS_BUILD_OPTIONS=rocksdb make build
-
    # Start node with production settings
-   ./local_node.sh nohup
+   ./local_node.sh
    ```
 
 2. **Test Initialization**:
@@ -95,14 +98,15 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
    cd loka-loadtest
    make
 
-   # Use a load-testing tool to send **5,000,000 transactions**
-   # Run benchmark with 10,000 concurrent senders
+   # Use a load-testing tool to send **300,000 transactions**
+   # Run benchmark with 5,000 concurrent senders
 
    ./bin/lokabenchcli run \
      --faucet-private-key <your_faucet_private_key> \
-     --tx-count 500 \
+     --tx-count 60 \
      --mempool 100000 \
-     --sender-count 10000
+     --sender-count 5000 \
+     --client-pool-size 500
    ```
 
 4. **Real-time Monitoring**:
@@ -111,8 +115,7 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
    # Monitor mempool unconfirmed txs
    ./mempool_monitor.sh
 
-   # Track chain performance
-   ./show_tps.sh
+   # Track chain console log and performance
    ```
 
 ### Configuration Details
@@ -128,7 +131,7 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
       "size": 100000
     },
     "consensus": {
-      "timeout_commit": "20ms"
+      "timeout_commit": "1s"
     },
     "db_backend": "rocksdb" // mac use goleveldb, linux use rocksdb
   },
@@ -162,8 +165,8 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
 
 | Metric                   | Expected Value       | Tolerance |
 | ------------------------ | -------------------- | --------- |
-| TPS Stability            | Cluster: 40,000 TPS  | ±10%      |
-|                          | Mac: 18,000 TPS      | ±15%      |
+| TPS Stability            | Cluster: 20,000 TPS  | ±10%      |
+|                          | Mac: 12,000 TPS      | ±15%      |
 | Block Time Consistency   | 20ms ± 2ms           | ±10%      |
 | Resource Utilization     | CPU < 95%, Mem < 90% | -         |
 | Transaction Success Rate | > 99.9%              | -         |
