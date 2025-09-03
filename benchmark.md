@@ -75,11 +75,18 @@ Execute TPS, Calculated as follows (Mac air M4, example block 236):
    # Increase the maximum number of open files
    ulimit -n 65535
 
+   # Check and Export gopath bin to system path
+   echo $GOPATH
+   export GOPATH=$HOME/go
+   export PATH=$PATH:$GOPATH/bin
+   sudo chown -R $USER:$USER $GOPATH
+
    # Clone the Loka chain repository
    git clone https://github.com/loka-network/loka-chain.git
    cd loka-chain
 
    # Start node with production settings
+   # For macos require macos sdk 15 or later
    ./local_node.sh
    ```
 
@@ -93,6 +100,9 @@ Execute TPS, Calculated as follows (Mac air M4, example block 236):
 3. **Load Generation**:
 
    ```bash
+   # Increase the maximum number of open files
+   ulimit -n 65535
+
    # compile load test tool
    git clone https://github.com/loka-network/loka-loadtest.git
    cd loka-loadtest
@@ -104,7 +114,7 @@ Execute TPS, Calculated as follows (Mac air M4, example block 236):
    ./bin/lokabenchcli run \
      --faucet-private-key <your_faucet_private_key> \
      --tx-count 60 \
-     --mempool 100000 \
+     --mempool 50000 \
      --sender-count 5000 \
      --client-pool-size 500
    ```
