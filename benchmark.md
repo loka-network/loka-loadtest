@@ -55,15 +55,33 @@ This benchmark aims to verify the performance and correctness of Loka Chain's ST
 
 Explanation:
 
-- Execute TPS: It is the number of transactions the blockchain can execute per second during transaction processing, only contains the time for transaction processing.
-- Total TPS : It encompasses the time for RPC (Remote Procedure Call) operations (used for blockchain network component communication) and consensus execution (where validators agree on the blockchain state).
+- **Execute TPS**: It is the number of transactions the blockchain can execute per second during transaction processing, only contains the time for transaction processing.
+- **Total TPS** : It encompasses the time for RPC (Remote Procedure Call) operations (used for blockchain network component communication) and consensus execution (where validators agree on the blockchain state).
 
-Execute TPS, Calculated as follows (Mac air M4, example block 236):
+**Execute TPS**, Calculated as follows (Mac air M4, example block 236):
 
 - Executed and committed state to next new block's RoundStepNewHeight timeout is -664.53 milliseconds.
 - Becasue the block time is 1s, and contains 17285 txs, so the number of transactions executed per second is 17285 / 1000 - (-664.53)ms = 10,387+.
 
 ![loka-chain-log](./doc/resource/executeTPS.png)
+
+**Total TPS**, Calculated as follows (Mac pro M1)
+
+- The loadtest client keeps a sliding window of recent blocks (up to ~60 seconds) in `blockStat`.
+- On each new block:
+  - Append `{timestamp, txCount, gasUsed, gasLimit}`
+  - Drop oldest entries until `(last.timestamp - first.timestamp) <= 60` seconds
+- Then compute:
+  - `timeSpanSeconds = last.timestamp - first.timestamp`
+  - `totalTxCount = sum(block.TxCount for blocks in window)`
+  - `TPS = totalTxCount / timeSpanSeconds` (integer division)
+  - `GasUsed% = (sum(block.GasUsed) / sum(block.GasLimit)) * 100`
+- The code also tracks the best observed TPS and the corresponding gas utilization.
+
+Example:
+
+- When the window shows `TimeSpan: 53` and `TotalTxCount: 155565`, TPS is `155565 / 53 = 2935`.
+- With full blocks `GasUsed: 362,985,000` and `GasLimit: 363,000,000`, gas utilization is `362,985,000 / 363,000,000 ≈ 100.00%`.
 
 ## 4. Test Methodology
 
@@ -75,11 +93,18 @@ Execute TPS, Calculated as follows (Mac air M4, example block 236):
    # Increase the maximum number of open files
    ulimit -n 65535
 
+   # Install golang
+   wget https://go.dev/dl/go1.23.3.linux-amd64.tar.gz
+   tar -zxvf go1.23.3.linux-amd64.tar.gz
+   mv go /usr/local
+
    # Check and Export gopath bin to system path
    echo $GOPATH
+   export GOROOT=/usr/local/go
    export GOPATH=$HOME/go
-   export PATH=$PATH:$GOPATH/bin
+   export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
    sudo chown -R $USER:$USER $GOPATH
+   go version
 
    # Clone the Loka chain repository
    git clone https://github.com/loka-network/loka-chain.git
@@ -155,6 +180,10 @@ Execute TPS, Calculated as follows (Mac air M4, example block 236):
     },
     "json-rpc": {
       "enable-indexer": false
+    },
+    "memival": {
+      "enable": true,
+      "async-commit-buffer": 16
     }
   },
   "genesis_patch": {
