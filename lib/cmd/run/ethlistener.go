@@ -150,48 +150,82 @@ func (el *EthereumListener) handleBlockResponse(response map[string]interface{})
 					break
 				}
 			}
-			timeSpan := el.blockStat[len(el.blockStat)-1].Time - el.blockStat[0].Time
-			// calculate TPS and gas used percentage
-			if timeSpan > 50 {
-				totalTxCount := int64(0)
-				totalGasLimit := int64(0)
-				totalGasUsed := int64(0)
-				for _, block := range el.blockStat {
-					totalTxCount += block.TxCount
-					totalGasLimit += block.GasLimit
-					totalGasUsed += block.GasUsed
+			// compute TPS over an active window that excludes early underfilled and trailing empty blocks
+			if len(el.blockStat) >= 2 {
+				startIdx := 0
+				endIdx := len(el.blockStat) - 1
+
+				// trim leading zero-tx blocks
+				for startIdx < len(el.blockStat) && el.blockStat[startIdx].TxCount == 0 {
+					startIdx++
 				}
-				tps := totalTxCount / timeSpan
-				log.Default().Println("TimeSpan:", timeSpan, "TotalTxCount:", totalTxCount)
-				gasUsedPercent := float64(totalGasUsed) / float64(totalGasLimit)
-				if tps > el.bestTPS {
-					el.bestTPS = tps
-					el.gasUsedAtBestTPS = gasUsedPercent
-				}
-				fmt.Printf("TPS: %d GasUsed%%: %.2f%%\n", tps, gasUsedPercent*100)
-				if totalTxCount < 100 {
-					// exit if total tx count is less than 100
-					fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
-					el.Close()
-					return
+				// trim trailing zero-tx blocks
+				for endIdx >= startIdx && el.blockStat[endIdx].TxCount == 0 {
+					endIdx--
 				}
 
-				// to avoid waiting 50 seconds after the transmission is complete
-				if len(el.blockStat) >= 3 {
-					for i := 1; i <= 3; i++ {
-						if el.blockStat[len(el.blockStat)-i].TxCount != 0 {
-							return
+				if endIdx > startIdx {
+					// determine peak tx count in the active range
+					peakTx := int64(0)
+					for i := startIdx; i <= endIdx; i++ {
+						if el.blockStat[i].TxCount > peakTx {
+							peakTx = el.blockStat[i].TxCount
 						}
 					}
-					fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
-					el.Close()
+					// trim early underfilled blocks (<50% of peak)
+					minFilled := peakTx / 2
+					for startIdx < endIdx && el.blockStat[startIdx].TxCount < minFilled {
+						startIdx++
+					}
+
+					timeSpan := el.blockStat[endIdx].Time - el.blockStat[startIdx].Time
+					// require a sufficiently long active window
+					if timeSpan > 20 {
+						totalTxCount := int64(0)
+						totalGasLimit := int64(0)
+						totalGasUsed := int64(0)
+						for i := startIdx; i <= endIdx; i++ {
+							totalTxCount += el.blockStat[i].TxCount
+							totalGasLimit += el.blockStat[i].GasLimit
+							totalGasUsed += el.blockStat[i].GasUsed
+						}
+						tps := totalTxCount / timeSpan
+						log.Default().Println("TimeSpan:", timeSpan, "TotalTxCount:", totalTxCount)
+						gasUsedPercent := float64(totalGasUsed) / float64(totalGasLimit)
+						if tps > el.bestTPS {
+							el.bestTPS = tps
+							el.gasUsedAtBestTPS = gasUsedPercent
+						}
+						fmt.Printf("TPS: %d GasUsed%%: %.2f%%\n", tps, gasUsedPercent*100)
+						if totalTxCount < 100 {
+							// exit if total tx count is less than 100
+							fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
+							el.Close()
+							return
+						}
+
+						// to avoid waiting after the transmission is complete, close if the last 3 blocks are empty
+						if len(el.blockStat) >= 3 {
+							emptyTail := true
+							for i := 1; i <= 3; i++ {
+								if el.blockStat[len(el.blockStat)-i].TxCount != 0 {
+									emptyTail = false
+									break
+								}
+							}
+							if emptyTail {
+								fmt.Printf("Best TPS: %d GasUsed%%: %.2f%%\n", el.bestTPS, el.gasUsedAtBestTPS*100)
+								el.Close()
+							}
+						}
+					}
 				}
 			}
-		}
-	} else {
-		if result, ok := response["result"].([]interface{}); ok {
-			if len(result) > 0 {
-				fmt.Println("Logs:", len(result))
+		} else {
+			if result, ok := response["result"].([]interface{}); ok {
+				if len(result) > 0 {
+					fmt.Println("Logs:", len(result))
+				}
 			}
 		}
 	}
